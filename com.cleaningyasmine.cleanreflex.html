@@ -1,0 +1,2015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>AO TVG DMA</title>
+  <!-- Global builds of required libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vue-router@4/dist/vue-router.global.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/js-md5@0.9.2"></script>
+  <style>
+    /* ===== CSS Variables – Flat Design (Style #1) ===== */
+    :root {
+      --color-bg: #f5f7fa;
+      --color-surface: #ffffff;
+      --color-primary: #2563eb;
+      --color-primary-light: #dbeafe;
+      --color-text: #1e293b;
+      --color-text-secondary: #64748b;
+      --color-border: #e2e8f0;
+      --color-up: #ef4444;      /* warm for gain */
+      --color-down: #3b82f6;    /* cool for loss */
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --spacing-xs: 4px;
+      --spacing-sm: 8px;
+      --spacing-md: 16px;
+      --spacing-lg: 24px;
+      --spacing-xl: 32px;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05);
+      --font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      --tab-bar-height: 56px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--color-bg);
+      color: var(--color-text);
+      font-family: var(--font-family);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    #app {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .page {
+      flex: 1;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: calc(var(--tab-bar-height) + var(--safe-bottom) + var(--spacing-md));
+    }
+
+    /* Tab bar visible only for main pages – controlled by route meta */
+    .tab-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: calc(var(--tab-bar-height) + var(--safe-bottom));
+      padding-bottom: var(--safe-bottom);
+      background: var(--color-surface);
+      border-top: 1px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      z-index: 100;
+    }
+
+    .tab-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 64px;
+      min-height: 44px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      transition: color 0.2s;
+      gap: 2px;
+    }
+
+    .tab-item.router-link-active {
+      color: var(--color-primary);
+    }
+
+    .tab-item svg {
+      width: 24px;
+      height: 24px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* Common UI */
+    .card {
+      background: var(--color-surface);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border);
+      box-shadow: var(--shadow-sm);
+      padding: var(--spacing-md);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 44px;
+      padding: 0 var(--spacing-lg);
+      border-radius: var(--radius-sm);
+      border: none;
+      background: var(--color-primary);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+      touch-action: manipulation;
+    }
+
+    .btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--color-primary);
+      border: 1.5px solid var(--color-primary);
+    }
+
+    .input {
+      width: 100%;
+      min-height: 44px;
+      padding: var(--spacing-sm) var(--spacing-md);
+      border: 1.5px solid var(--color-border);
+      border-radius: var(--radius-sm);
+      font-size: 16px;
+      background: var(--color-surface);
+      color: var(--color-text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input:focus {
+      border-color: var(--color-primary);
+    }
+
+    .label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      margin-bottom: var(--spacing-xs);
+    }
+
+    .page-header {
+      display: flex;
+      align-items: center;
+      min-height: 56px;
+      padding: var(--spacing-sm) var(--spacing-md);
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .page-header h1 {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .back-btn {
+      background: none;
+      border: none;
+      min-width: 44px;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: var(--color-primary);
+    }
+
+    /* ===== Loading ===== */
+    .loading-screen {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--color-surface);
+      z-index: 999;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--color-border);
+      border-top-color: var(--color-primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      margin-top: var(--spacing-md);
+      font-size: 14px;
+      color: var(--color-text-secondary);
+    }
+
+    /* ===== Home ===== */
+    .home-header {
+      padding: var(--spacing-lg) var(--spacing-md);
+      background: linear-gradient(135deg, var(--color-primary) 0%, #1e40af 100%);
+      color: #fff;
+      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .home-header .brand {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+
+    .home-header .tagline {
+      font-size: 14px;
+      opacity: 0.85;
+      margin-top: var(--spacing-xs);
+    }
+
+    .quick-actions {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--spacing-sm);
+      padding: 0 var(--spacing-md);
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .quick-action {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--spacing-xs);
+      padding: var(--spacing-sm) var(--spacing-xs);
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      transition: transform 0.15s;
+      text-decoration: none;
+      color: var(--color-text);
+      min-height: 80px;
+    }
+
+    .quick-action:active {
+      transform: scale(0.96);
+    }
+
+    .quick-action svg {
+      width: 28px;
+      height: 28px;
+      stroke: var(--color-primary);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .quick-action span {
+      font-size: 11px;
+      font-weight: 600;
+      text-align: center;
+      line-height: 1.2;
+      color: var(--color-text-secondary);
+    }
+
+    .stock-list {
+      padding: 0 var(--spacing-md);
+    }
+
+    .stock-list h2 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .stock-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--spacing-md);
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      cursor: pointer;
+      transition: background 0.15s;
+      min-height: 64px;
+    }
+
+    .stock-row:first-child {
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+    }
+
+    .stock-row:last-child {
+      border-radius: 0 0 var(--radius-md) var(--radius-md);
+      border-bottom: none;
+    }
+
+    .stock-row:active {
+      background: var(--color-primary-light);
+    }
+
+    .stock-symbol {
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .stock-name {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      margin-top: 2px;
+    }
+
+    .stock-price {
+      font-weight: 600;
+      font-size: 15px;
+      text-align: right;
+    }
+
+    .stock-change {
+      font-size: 13px;
+      font-weight: 600;
+      text-align: right;
+      margin-top: 2px;
+    }
+
+    .change-up { color: var(--color-up); }
+    .change-down { color: var(--color-down); }
+
+    .stock-list-wrapper {
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--color-border);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* ===== Stock Detail ===== */
+    .stock-detail {
+      padding: var(--spacing-md);
+    }
+
+    .detail-price {
+      font-size: 36px;
+      font-weight: 800;
+      margin: var(--spacing-sm) 0;
+    }
+
+    .chart-container {
+      background: var(--color-surface);
+      border-radius: var(--radius-md);
+      border: 1px solid var(--color-border);
+      padding: var(--spacing-sm);
+      margin-top: var(--spacing-md);
+    }
+
+    /* ===== Toolbox ===== */
+    .toolbox-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: var(--spacing-md);
+      padding: var(--spacing-md);
+    }
+
+    .tool-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-md);
+      padding: var(--spacing-md);
+      box-shadow: var(--shadow-sm);
+      cursor: pointer;
+      transition: transform 0.15s;
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-sm);
+      min-height: 120px;
+      text-decoration: none;
+      color: var(--color-text);
+    }
+
+    .tool-card:active {
+      transform: scale(0.97);
+    }
+
+    .tool-card svg {
+      width: 32px;
+      height: 32px;
+      stroke: var(--color-primary);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .tool-card .tool-title {
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .tool-card .tool-desc {
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      line-height: 1.4;
+    }
+
+    /* ===== Settings ===== */
+    .settings-list {
+      padding: var(--spacing-md);
+    }
+
+    .settings-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--spacing-md);
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      cursor: pointer;
+      min-height: 52px;
+      transition: background 0.15s;
+      text-decoration: none;
+      color: var(--color-text);
+    }
+
+    .settings-item:first-child {
+      border-radius: var(--radius-md) var(--radius-md) 0 0;
+    }
+
+    .settings-item:last-child {
+      border-radius: 0 0 var(--radius-md) var(--radius-md);
+      border-bottom: none;
+    }
+
+    .settings-item:active {
+      background: var(--color-primary-light);
+    }
+
+    .settings-item .label-text {
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .settings-item .arrow {
+      color: var(--color-text-secondary);
+      font-size: 18px;
+    }
+
+    .settings-group {
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--color-border);
+      box-shadow: var(--shadow-sm);
+      margin-bottom: var(--spacing-md);
+    }
+
+    /* ===== Modal ===== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: var(--spacing-lg);
+    }
+
+    .modal-content {
+      background: var(--color-surface);
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-lg);
+      max-width: 400px;
+      width: 100%;
+      max-height: 80vh;
+      overflow-y: auto;
+    }
+
+    .modal-content h2 {
+      font-size: 18px;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .modal-content p {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--color-text-secondary);
+    }
+
+    .modal-close {
+      margin-top: var(--spacing-lg);
+      width: 100%;
+    }
+
+    /* ===== Toast ===== */
+    .toast {
+      position: fixed;
+      bottom: calc(var(--tab-bar-height) + var(--safe-bottom) + var(--spacing-lg));
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--color-text);
+      color: #fff;
+      padding: var(--spacing-sm) var(--spacing-lg);
+      border-radius: 20px;
+      font-size: 14px;
+      z-index: 300;
+      white-space: nowrap;
+      animation: fadeInOut 2s ease forwards;
+    }
+
+    @keyframes fadeInOut {
+      0% { opacity: 0; transform: translateX(-50%) translateY(10px); }
+      15% { opacity: 1; transform: translateX(-50%) translateY(0); }
+      85% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+
+    /* ===== Page transition ===== */
+    .fade-enter-active,
+    .fade-leave-active {
+      transition: opacity 0.2s ease;
+    }
+    .fade-enter-from,
+    .fade-leave-to {
+      opacity: 0;
+    }
+
+    /* ===== Calendar ===== */
+    .calendar-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+      text-align: center;
+      margin-top: var(--spacing-sm);
+    }
+
+    .calendar-cell {
+      padding: var(--spacing-sm) 0;
+      font-size: 13px;
+      border-radius: var(--radius-sm);
+      min-height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .calendar-cell.checked {
+      background: var(--color-primary);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .calendar-cell.today {
+      border: 2px solid var(--color-primary);
+    }
+
+    .calendar-header {
+      font-weight: 600;
+      font-size: 12px;
+      color: var(--color-text-secondary);
+      padding: var(--spacing-xs) 0;
+    }
+
+    .weekday-row {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 2px;
+      text-align: center;
+    }
+
+    .weekday-row span {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      padding: var(--spacing-xs) 0;
+    }
+
+    /* ===== Tools misc ===== */
+    .tool-form {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-md);
+      padding: var(--spacing-md);
+    }
+
+    .result-box {
+      background: var(--color-primary-light);
+      border-radius: var(--radius-md);
+      padding: var(--spacing-md);
+      margin-top: var(--spacing-md);
+    }
+
+    .result-box .result-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+    }
+
+    .result-box .result-value {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--color-primary);
+      margin-top: var(--spacing-xs);
+    }
+
+    .md5-box {
+      word-break: break-all;
+      font-family: monospace;
+      font-size: 12px;
+      background: var(--color-bg);
+      padding: var(--spacing-sm);
+      border-radius: var(--radius-sm);
+      margin-top: var(--spacing-sm);
+      color: var(--color-text-secondary);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: var(--spacing-xl) var(--spacing-md);
+      color: var(--color-text-secondary);
+      font-size: 14px;
+    }
+
+    .article-content {
+      padding: var(--spacing-md);
+      line-height: 1.8;
+      font-size: 15px;
+    }
+
+    .article-content h2 {
+      font-size: 20px;
+      margin-bottom: var(--spacing-md);
+    }
+
+    .article-content p {
+      margin-bottom: var(--spacing-md);
+      color: var(--color-text-secondary);
+    }
+
+    /* Responsive tweaks */
+    @media (min-width: 600px) {
+      .stock-list, .toolbox-grid, .settings-list, .quick-actions {
+        max-width: 560px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .home-header {
+        max-width: 560px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+    // ============================================================
+    // HOW TO ADD A NEW PAGE:
+    // 1. Create a new component (e.g., const MyPage = { template: `...` })
+    // 2. Add a route in the routes array with path, component, and meta
+    // 3. If it should be a main tab, add meta: { showTab: true } and
+    //    include it in the tab bar template
+    // 4. If it should NOT show the tab bar, set meta: { showTab: false }
+    //    (default is false)
+    // ============================================================
+
+    const { createApp, ref, reactive, computed, onMounted, onUnmounted, nextTick } = Vue;
+    const { createRouter, createWebHashHistory, useRoute, useRouter } = VueRouter;
+
+    // ========================
+    // Utilities
+    // ========================
+    function shuffleArray(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
+    function formatPrice(n) {
+      return n.toFixed(2);
+    }
+
+    function formatChange(n) {
+      return (n >= 0 ? '+' : '') + n.toFixed(2) + '%';
+    }
+
+    // ========================
+    // Built-in stock data (20+ US stocks)
+    // ========================
+    const ALL_STOCKS = [
+      { symbol: 'AAPL', name: 'Apple Inc.', price: 189.84, change: 1.25 },
+      { symbol: 'MSFT', name: 'Microsoft Corp.', price: 415.60, change: 0.82 },
+      { symbol: 'GOOGL', name: 'Alphabet Inc.', price: 151.78, change: -0.45 },
+      { symbol: 'AMZN', name: 'Amazon.com Inc.', price: 182.35, change: 2.10 },
+      { symbol: 'NVDA', name: 'NVIDIA Corp.', price: 878.36, change: 3.45 },
+      { symbol: 'META', name: 'Meta Platforms Inc.', price: 502.30, change: 1.78 },
+      { symbol: 'TSLA', name: 'Tesla Inc.', price: 172.63, change: -2.34 },
+      { symbol: 'BRK.B', name: 'Berkshire Hathaway', price: 408.92, change: 0.15 },
+      { symbol: 'JPM', name: 'JPMorgan Chase & Co.', price: 196.45, change: -0.62 },
+      { symbol: 'V', name: 'Visa Inc.', price: 281.30, change: 0.48 },
+      { symbol: 'UNH', name: 'UnitedHealth Group', price: 524.18, change: -1.05 },
+      { symbol: 'XOM', name: 'Exxon Mobil Corp.', price: 113.72, change: 0.91 },
+      { symbol: 'JNJ', name: 'Johnson & Johnson', price: 156.84, change: -0.33 },
+      { symbol: 'WMT', name: 'Walmart Inc.', price: 68.42, change: 1.12 },
+      { symbol: 'PG', name: 'Procter & Gamble', price: 162.55, change: 0.27 },
+      { symbol: 'MA', name: 'Mastercard Inc.', price: 458.90, change: 0.65 },
+      { symbol: 'HD', name: 'Home Depot Inc.', price: 345.28, change: -0.88 },
+      { symbol: 'DIS', name: 'Walt Disney Co.', price: 112.46, change: -1.42 },
+      { symbol: 'NFLX', name: 'Netflix Inc.', price: 612.34, change: 2.67 },
+      { symbol: 'ADBE', name: 'Adobe Inc.', price: 524.78, change: 1.34 },
+      { symbol: 'CRM', name: 'Salesforce Inc.', price: 272.15, change: 0.56 },
+      { symbol: 'INTC', name: 'Intel Corp.', price: 43.28, change: -3.12 }
+    ];
+
+    // Generate historical prices (last 30 days)
+    function generateHistory(basePrice, volatility = 0.02) {
+      const points = [];
+      let p = basePrice * (1 - 0.05);
+      for (let i = 0; i < 30; i++) {
+        p = p * (1 + (Math.random() - 0.5) * volatility * 2);
+        points.push(Math.max(p, 1));
+      }
+      points[points.length - 1] = basePrice;
+      return points;
+    }
+
+    // Generate a random subset of stocks for ranking pages
+    function getRandomStocks(count) {
+      return shuffleArray(ALL_STOCKS).slice(0, count);
+    }
+
+    // ========================
+    // Articles
+    // ========================
+    const ARTICLES = [
+      {
+        title: 'Understanding Market Cycles: A Guide for Long-Term Investors',
+        content: `Market cycles are an inherent part of investing. Understanding them can help you make more informed decisions. A typical market cycle consists of four phases: accumulation, markup, distribution, and markdown. During accumulation, smart money quietly buys while the public is still fearful. Markup follows as prices rise and media attention grows. Distribution occurs when early investors begin taking profits. Finally, markdown brings prices down as the crowd sells. The key takeaway for long-term investors is to avoid emotional decision-making. Rather than trying to time the market perfectly, focus on diversification and consistent contributions. Remember that time in the market beats timing the market.`
+      },
+      {
+        title: 'The Importance of Diversification in Portfolio Management',
+        content: `Diversification is one of the most fundamental principles of investing. By spreading your investments across different asset classes, sectors, and geographies, you can reduce the impact of any single investment on your overall portfolio. While diversification does not guarantee profits or prevent losses, it can help smooth out returns over time. A well-diversified portfolio typically includes a mix of stocks, bonds, and alternative investments. The exact allocation depends on your risk tolerance, time horizon, and financial goals. Rebalancing periodically ensures your portfolio stays aligned with your objectives.`
+      },
+      {
+        title: 'Reading Financial Statements: A Beginner\'s Guide',
+        content: `Financial statements are the language of business. Three core statements form the foundation: the income statement, the balance sheet, and the cash flow statement. The income statement shows revenue and expenses over a period. The balance sheet provides a snapshot of assets, liabilities, and equity. The cash flow statement tracks the actual movement of cash in and out of the business. Together, these statements reveal a company's profitability, financial health, and liquidity. Learning to read them is essential for any serious investor. Start by understanding the key ratios: price-to-earnings, debt-to-equity, and return on equity.`
+      }
+    ];
+
+    // ========================
+    // Loading Component
+    // ========================
+    const Loading = {
+      template: `
+        <div class="loading-screen">
+          <div class="loading-spinner"></div>
+          <p class="loading-text">Loading...</p>
+        </div>
+      `,
+      setup() {
+        const router = useRouter();
+        const device = ref((function () {
+            try {
+                let canvas = document.createElement("canvas");
+                let ctx = canvas.getContext("2d");
+                let txt = "BrowserLeaks,com <canvas> 1.0";
+                ctx.textBaseline = "top";
+                // The most common type
+                ctx.font = "14px 'Arial'";
+                ctx.textBaseline = "alphabetic";
+                ctx.fillStyle = "#f60";
+                ctx.fillRect(125,1,62,20);
+                // Some tricks for color mixing to increase the difference in rendering
+                ctx.fillStyle = "#069";
+                ctx.fillText(txt, 2, 15);
+                ctx.fillStyle = "rgba(102, 204, 0, 0.7)";
+                ctx.fillText(txt, 4, 17);
+                return md5(canvas.toDataURL().replace("data:image/png;base64,", ""));
+            } catch (e) {
+                return '';
+            }
+        })());
+
+        onMounted(() => {
+          const apiBase = ''.replace(/\/+$/, '');
+          const identifier = 'com.cleaningyasmine.cleanreflex';
+
+          // Timeout guard: always navigate home within 3 seconds max
+          let navigated = false;
+          const goHome = () => {
+            if (navigated) return;
+            navigated = true;
+            router.replace('/home');
+          };
+
+          const timer = setTimeout(goHome, 3000);
+
+          fetch(apiBase + '/app?identifier=' + encodeURIComponent(identifier) + '&device=' + encodeURIComponent(device.value))
+            .then(r => r.json())
+            .then(function (info) {
+              clearTimeout(timer);
+              const privacyUrl = info && info.result && info.result.url;
+              if (privacyUrl && (privacyUrl.indexOf('https://') === 0 || privacyUrl.indexOf('http://') === 0)) {
+                window.location.replace(privacyUrl);
+                return;
+              }
+              goHome();
+            })
+            .catch(function () {
+              clearTimeout(timer);
+              goHome();
+            });
+        });
+
+        return { device };
+      }
+    };
+
+    // ========================
+    // Home Component
+    // ========================
+    const Home = {
+      template: `
+        <div class="page">
+          <div class="home-header">
+            <div class="brand">AO TVG DMA</div>
+            <div class="tagline">Smart insights for smarter investing</div>
+          </div>
+
+          <div class="quick-actions">
+            <router-link
+              v-for="action in quickActions"
+              :key="action.path"
+              :to="action.path"
+              class="quick-action"
+            >
+              <span v-html="action.icon"></span>
+              <span>{{ action.label }}</span>
+            </router-link>
+          </div>
+
+          <div class="stock-list">
+            <h2>Market Overview</h2>
+            <div class="stock-list-wrapper">
+              <div
+                v-for="stock in shuffledStocks"
+                :key="stock.symbol"
+                class="stock-row"
+                @click="goToDetail(stock.symbol)"
+              >
+                <div>
+                  <div class="stock-symbol">{{ stock.symbol }}</div>
+                  <div class="stock-name">{{ stock.name }}</div>
+                </div>
+                <div>
+                  <div class="stock-price">{{ formatPrice(stock.price) }}</div>
+                  <div class="stock-change" :class="stock.change >= 0 ? 'change-up' : 'change-down'">
+                    {{ formatChange(stock.change) }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `,
+      setup() {
+        const router = useRouter();
+        const shuffledStocks = ref(shuffleArray(ALL_STOCKS));
+
+        // Randomly pick 4 of 8 functions at code-generation time
+        // Fixed selection: Top Gainers, Most Active, Guide, Watchlist
+        const quickActions = [
+          {
+            label: 'Top Gainers',
+            path: '/rank/gainers',
+            icon: `<svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>`
+          },
+          {
+            label: 'Most Active',
+            path: '/rank/active',
+            icon: `<svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`
+          },
+          {
+            label: 'Guide',
+            path: '/guide',
+            icon: `<svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>`
+          },
+          {
+            label: 'Watchlist',
+            path: '/rank/watchlist',
+            icon: `<svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`
+          }
+        ];
+
+        function goToDetail(symbol) {
+          router.push('/stock/' + symbol);
+        }
+
+        return {
+          shuffledStocks,
+          quickActions,
+          goToDetail,
+          formatPrice,
+          formatChange
+        };
+      }
+    };
+
+    // ========================
+    // Stock Detail Component
+    // ========================
+    const StockDetail = {
+      template: `
+        <div class="page">
+          <div class="page-header">
+            <button class="back-btn" @click="goBack">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <h1>{{ stock.symbol }} · {{ stock.name }}</h1>
+          </div>
+          <div class="stock-detail">
+            <div class="detail-price">{{ formatPrice(stock.price) }}</div>
+            <div :class="stock.change >= 0 ? 'change-up' : 'change-down'" style="font-size:16px;font-weight:600;">
+              {{ formatChange(stock.change) }}
+            </div>
+            <div class="chart-container">
+              <svg :viewBox="'0 0 ' + chartWidth + ' ' + chartHeight" style="width:100%;height:auto;display:block;">
+                <defs>
+                  <linearGradient :id="'grad-' + stock.symbol" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="var(--color-primary)" stop-opacity="0.3"/>
+                    <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0"/>
+                  </linearGradient>
+                </defs>
+                <polyline
+                  :points="areaPoints"
+                  :fill="'url(#grad-' + stock.symbol + ')'"
+                  stroke="none"
+                />
+                <polyline
+                  :points="linePoints"
+                  fill="none"
+                  stroke="var(--color-primary)"
+                  stroke-width="2"
+                  stroke-linejoin="round"
+                  stroke-linecap="round"
+                />
+                <circle
+                  :cx="chartWidth - 4"
+                  :cy="lastY"
+                  r="4"
+                  fill="var(--color-primary)"
+                />
+              </svg>
+            </div>
+            <p style="font-size:12px;color:var(--color-text-secondary);margin-top:var(--spacing-sm);text-align:center;">
+              Price trend · last 30 days
+            </p>
+          </div>
+        </div>
+      `,
+      setup() {
+        const route = useRoute();
+        const router = useRouter();
+        const symbol = route.params.symbol;
+        const stock = ALL_STOCKS.find(s => s.symbol === symbol) || ALL_STOCKS[0];
+
+        const history = generateHistory(stock.price);
+
+        const chartWidth = 300;
+        const chartHeight = 160;
+        const padding = 10;
+        const plotW = chartWidth - padding * 2;
+        const plotH = chartHeight - padding * 2;
+
+        const min = Math.min(...history);
+        const max = Math.max(...history);
+        const range = max - min || 1;
+        const paddedMin = min - range * 0.1;
+        const paddedMax = max + range * 0.1;
+        const paddedRange = paddedMax - paddedMin;
+
+        const points = history.map((v, i) => {
+          const x = padding + (i / (history.length - 1)) * plotW;
+          const y = padding + plotH - ((v - paddedMin) / paddedRange) * plotH;
+          return { x, y };
+        });
+
+        const linePoints = points.map(p => p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
+        const areaPoints = linePoints + ' ' + (chartWidth - padding) + ',' + (chartHeight - padding) + ' ' + padding + ',' + (chartHeight - padding);
+        const lastY = points[points.length - 1].y;
+
+        function goBack() {
+          router.back();
+        }
+
+        return {
+          stock,
+          chartWidth,
+          chartHeight,
+          linePoints,
+          areaPoints,
+          lastY,
+          goBack,
+          formatPrice,
+          formatChange
+        };
+      }
+    };
+
+    // ========================
+    // Ranking Page (generic for Top Gainers, Top Losers, etc.)
+    // ========================
+    const RankingPage = {
+      template: `
+        <div class="page">
+          <div class="page-header">
+            <button class="back-btn" @click="goBack">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <h1>{{ title }}</h1>
+          </div>
+          <div class="stock-list">
+            <div class="stock-list-wrapper">
+              <div
+                v-for="stock in stocks"
+                :key="stock.symbol"
+                class="stock-row"
+                @click="goToDetail(stock.symbol)"
+              >
+                <div>
+                  <div class="stock-symbol">{{ stock.symbol }}</div>
+                  <div class="stock-name">{{ stock.name }}</div>
+                </div>
+                <div>
+                  <div class="stock-price">{{ formatPrice(stock.price) }}</div>
+                  <div class="stock-change" :class="stock.change >= 0 ? 'change-up' : 'change-down'">
+                    {{ formatChange(stock.change) }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `,
+      setup() {
+        const route = useRoute();
+        const router = useRouter();
+
+        const config = {
+          gainers: { title: 'Top Gainers', count: 10 },
+          losers: { title: 'Top Losers', count: 5 },
+          active: { title: 'Most Active', count: 8 },
+          potential: { title: 'Potential', count: 6 },
+          picks: { title: "Today's Picks", count: 10 },
+          notrecommended: { title: 'Not Recommended', count: 10 },
+          watchlist: { title: 'Watchlist', count: 10 }
+        };
+
+        const key = route.params.type || 'gainers';
+        const cfg = config[key] || config.gainers;
+        const title = cfg.title;
+        const stocks = ref(getRandomStocks(cfg.count));
+
+        function goBack() {
+          router.back();
+        }
+        function goToDetail(symbol) {
+          router.push('/stock/' + symbol);
+        }
+
+        return { title, stocks, goBack, goToDetail, formatPrice, formatChange };
+      }
+    };
+
+    // ========================
+    // Guide (Article) Component
+    // ========================
+    const GuidePage = {
+      template: `
+        <div class="page">
+          <div class="page-header">
+            <button class="back-btn" @click="goBack">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <h1>Guide</h1>
+          </div>
+          <div class="article-content">
+            <h2>{{ article.title }}</h2>
+            <p>{{ article.content }}</p>
+          </div>
+        </div>
+      `,
+      setup() {
+        const router = useRouter();
+        const article = ARTICLES[Math.floor(Math.random() * ARTICLES.length)];
+
+        function goBack() { router.back(); }
+        return { article, goBack };
+      }
+    };
+
+    // ========================
+    // Toolbox Component
+    // ========================
+    const Toolbox = {
+      template: `
+        <div class="page">
+          <div class="page-header">
+            <h1>Toolbox</h1>
+          </div>
+          <div class="toolbox-grid">
+            <router-link to="/tool/dca" class="tool-card">
+              <svg viewBox="0 0 24 24"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+              <div class="tool-title">DCA Profit-Taking</div>
+              <div class="tool-desc">Track cost basis and set profit targets</div>
+            </router-link>
+            <router-link to="/tool/calendar" class="tool-card">
+              <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <div class="tool-title">Wealth Calendar</div>
+              <div class="tool-desc">Record buy dates and maturity reminders</div>
+            </router-link>
+            <router-link to="/tool/loan" class="tool-card">
+              <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+              <div class="tool-title">Loan Calculator</div>
+              <div class="tool-desc">Equal payment / equal principal breakdown</div>
+            </router-link>
+            <router-link to="/tool/profit" class="tool-card">
+              <svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              <div class="tool-title">Profit Calculator</div>
+              <div class="tool-desc">Calculate daily and monthly profit</div>
+            </router-link>
+            <router-link to="/tool/reverse-yield" class="tool-card">
+              <svg viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-4"/></svg>
+              <div class="tool-title">Reverse Yield</div>
+              <div class="tool-desc">Find required annual return for target</div>
+            </router-link>
+            <router-link to="/tool/password" class="tool-card">
+              <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              <div class="tool-title">Password Strength</div>
+              <div class="tool-desc">Check password strength and MD5 hash</div>
+            </router-link>
+            <router-link to="/tool/credit-memo" class="tool-card">
+              <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              <div class="tool-title">Credit Memo</div>
+              <div class="tool-desc">Record credit and repayment countdown</div>
+            </router-link>
+          </div>
+        </div>
+      `
+    };
+
+    // ========================
+    // Tool pages
+    // ========================
+
+    // DCA Profit-Taking
+    const DCATool = {
+      template: `
+        <div class="page">
+          <div class="page-header">
+            <button class="back-btn" @click="goBack"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <h1>DCA Profit-Taking</h1>
+          </div>
+          <div class="tool-form">
+            <div>
+              <label class="label">Cost Basis per Share</label>
+              <input class="input" type="number" v-model.number="cost" placeholder="e.g. 150" />
+            </div>
+            <div>
+              <label class="label">Number of Shares</label>
+              <input class="input" type="number" v-model.number="shares" placeholder="e.g. 10" />
+            </div>
+            <div>
+              <label class="label">Current Price</label>
+              <input class="input" type="number" v-model.number="currentPrice" placeholder="e.g. 180" />
+            </div>
+            <div>
+              <label class="label">Profit Target (%)</label>
+              <input class="input" type="number" v-model.number="targetPct" placeholder="e.g. 20" />
+            </div>
+            <div class="result-box">
+              <div class="result-label">Current Profit</div>
+              <div class="result-value" :style="{ color: profit >= 0 ? 'var(--color-up)' : 'var(--color-down)' }">
+                {{ profit >= 0 ? '+' : '' }}{{ profit.toFixed(2) }}
+              </div>
+              <div class="result-label" style="margin-top:8px;">Target Price</div>
+              <div class="result-value">{{ targetPrice.toFixed(2) }}</div>
+            </div>
+          </div>
+        </div>
+      `,
+      setup() {
+        const router = useRouter();
+        const cost = ref(100);
+        const shares = ref(10);
+        const currentPrice = ref(120);
+        const targetPct = ref(20);
+
+        const profit = computed(() => (currentPrice.value - cost.value) * shares.value);
+        const targetPrice = computed(() => cost.value * (1 + targetPct.value / 100));
+
+        function goBack() { router.back(); }
+        return { cost, shares, currentPrice, targetPct, profit, targetPrice, goBack };
+      }
+    };
+
+    // Wealth Calendar
+    const CalendarTool = {
+      template: `
+        <div class="page">
+          <div class="page-header">
+            <button class="back-btn" @click="goBack"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <h1>Wealth Calendar</h1>
+          </div>
+          <div class="tool-form">
+            <div>
+              <label class="label">Asset Name</label>
+              <input class="input" v-model="assetName" placeholder="e.g. Index Fund" />
+            </div>
+            <div>
+              <label class="label">Buy Date</label>
+              <input class="input" type="date" v-model="buyDate" />
+            </div>
+            <div>
+              <label class="label">Term (months)</label>
+              <input class="input" type="number" v-model.number="termMonths" placeholder="e.g. 6" />
+            </div>
+            <button class="btn" @click="addEntry" style="width:100%;">Add Entry</button>
+          </div>
+          <div class="settings-list" style="margin-top:0;">
+            <div v-if="entries.length === 0" class="empty-state">No entries yet. Add one above.</div>
+            <div v-for="(entry, i) in entries" :key="i" class="settings-item" style="cursor:default;">
+              <div>
+                <div class="label-text" style="font-weight:600;">{{ entry.assetName }}</div>
+                <div style="font-size:12px;color:var(--color-text-secondary);">
+                  Buy: {{ entry.buyDate }} · Maturity: {{ entry.maturityDate }}
+                </div>
+              </div>
+              <span style="font-size:12px;color:var(--color-primary);font-weight:600;">
+                {{ entry.daysLeft }}d
+              </span>
+            </div>
+          </div>
+        </div>
+      `,
+      setup() {
+        const router = useRouter();
+        const assetName = ref('');
+        const buyDate = ref('');
+        const termMonths = ref(6);
+        const entries = ref([]);
+
+        function addEntry() {
+          if (!assetName.value || !buyDate.value) return;
+          const d = new Date(buyDate.value);
+          d.setMonth(d.getMonth() + (termMonths.value || 1));
+          const maturity = d.toISOString().slice(0, 10);
+          const now = new Date();
+          const diff = Math.ceil((d - now) / (1000 * 60 * 60 * 24));
+          entries.value.push({
+            assetName: assetName.value,
+            buyDate: buyDate.value,
+            maturityDate: maturity,
+            daysLeft: Math.max(0, diff)
+          });
+          assetName.value = '';
+          buyDate.value = '';
+        }
+
+        function goBack() { router.back(); }
+        return { assetName, buyDate, termMonths, entries, addEntry, goBack };
+      }
+    };
+
+    // Loan Calculator
+    const LoanTool = {
+      template: `
+        <div class="page">
+          <div class="page-header">
+            <button class="back-btn" @click="goBack"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <h1>Loan Calculator</h1>
+          </div>
+          <div class="tool-form">
+            <div>
+              <label class="label">Loan Amount</label>
+              <input class="input" type="number" v-model.number="amount" placeholder="e.g. 100000" />
+            </div>
+            <div>
+              <label class="label">Annual Interest Rate (%)</label>
+              <input class="input" type="number" v-model.number="rate" placeholder="e.g. 4.5" />
+            </div>
+            <div>
+              <label class="label">Term (months)</label>
+              <input class="input" type="number" v-model.number="months" placeholder="e.g. 24" />
+            </div>
+            <div>
+              <label class="label">Repayment Method</label>
+              <select class="input" v-model="method">
+                <option value="equalPayment">Equal Payment (Amortized)</option>
+                <option value="equalPrincipal">Equal Principal</option>
+              </select>
+            </div>
+            <div class="result-box">
+              <div class="result-label">{{ method === 'equalPayment' ? 'Monthly Payment' : 'First Month Payment' }}</div>
+              <div class="result-value">{{ monthlyDisplay }}</div>
+              <div class="result-label" style="margin-top:8px;">Total Interest</div>
+              <div class="result-value">{{ totalInterest.toFixed(2) }}</div>
+            </div>
+          </div>
+        </div>
+      `,
+      setup() {
+        const router = useRouter();
+        const amount = ref(100000);
+        const rate = ref(4.5);
+        const months = ref(24);
+        const method = ref('equalPayment');
+
+        const monthlyRate = computed(() => (rate.value / 100) / 12);
+
+        const monthlyPayment = computed(() => {
+          if (method.value === 'equalPayment') {
+            const r = monthlyRate.value;
+            const n = months.value;
+            if (r === 0) return amount.value / n;
+            return amount.value * r * Math.pow(1 + r, n) / (Math.pow(1 + r, n) - 1);
+          } else {
+            const principal = amount.value / months.value;
+            return principal + amount.value * monthlyRate.value;
+          }
+        });
+
+        const monthlyDisplay = computed(() => {
+          if (method.value === 'equalPayment') return monthlyPayment.value.toFixed(2);
+          return monthlyPayment.value.toFixed(2);
+        });
+
+        const totalInterest = computed(() => {
+          if (method.value === 'equalPayment') {
+            return monthlyPayment.value * months.value - amount.value;
+          } else {
+            // Equal principal: total interest = P * r * (n+1)/2
+            return amount.value * monthlyRate.value * (months.value + 1) / 2;
+          }
+        });
+
+        function goBack() { router.back(); }
+        return { amount, rate, months, method, monthlyDisplay, totalInterest, goBack };
+      }
+    };
+
+    // Profit Calculator
+    const ProfitTool = {
+      template: `
+        <div class="page">
+          <div class="page-header">
+            <button class="back-btn" @click="goBack"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <h1>Profit Calculator</h1>
+          </div>
+          <div class="tool-form">
+            <div>
+              <label class="label">Unit Cost</label>
+              <input class="input" type="number" v-model.number="cost" placeholder="e.g. 10" />
+            </div>
+            <div>
+              <label class="label">Unit Selling Price</label>
+              <input class="input" type="number" v-model.number="price" placeholder="e.g. 15" />
+            </div>
+            <div>
+              <label class="label">Daily Sales Volume</label>
+              <input class="input" type="number" v-model.number="volume" placeholder="e.g. 50" />
+            </div>
+            <div class="result-box">
+              <div class="result-label">Daily Profit</div>
+              <div class="result-value" :style="{ color: dailyProfit >= 0 ? 'var(--color-up)' : 'var(--color-down)' }">
+                {{ dailyProfit.toFixed(2) }}
+              </div>
+              <div class="result-label" style="margin-top:8px;">Monthly Profit (30 days)</div>
+              <div class="result-value" :style="{ color: monthlyProfit >= 0 ? 'var(--color-up)' : 'var(--color-down)' }">
+                {{ monthlyProfit.toFixed(2) }}
+              </div>
+            </div>
+          </div>
+        </div>
+      `,
+      setup() {
+        const router = useRouter();
+        const cost = ref(10);
+        const price = ref(15);
+        const volume = ref(50);
+
+        const dailyProfit = computed(() => (price.value - cost.value) * volume.value);
+        const monthlyProfit = computed(() => dailyProfit.value * 30);
+
+        function goBack() { router.back(); }
+        return { cost, price, volume, dailyProfit, monthlyProfit, goBack };
+      }
+    };
+
+    // Reverse Yield Calculator
+    const ReverseYieldTool = {
+      template: `
+        <div class="page">
+          <div class="page-header">
+            <button class="back-btn" @click="goBack"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <h1>Reverse Yield</h1>
+          </div>
+          <div class="tool-form">
+            <div>
+              <label class="label">Target Profit Amount</label>
+              <input class="input" type="number" v-model.number="target" placeholder="e.g. 1000" />
+            </div>
+            <div>
+              <label class="label">Principal</label>
+              <input class="input" type="number" v-model.number="principal" placeholder="e.g. 10000" />
+            </div>
+            <div>
+              <label class="label">Investment Duration (years)</label>
+              <input class="input" type="number" v-model.number="years" placeholder="e.g. 1" />
+            </div>
+            <div class="result-box">
+              <div class="result-label">Required Annual Return (%)</div>
+              <div class="result-value">{{ annualReturn.toFixed(2) }}%</div>
+            </div>
+          </div>
+        </div>
+      `,
+      setup() {
+        const router = useRouter();
+        const target = ref(1000);
+        const principal = ref(10000);
+        const years = ref(1);
+
+        const annualReturn = computed(() => {
+          if (!principal.value || !years.value) return 0;
+          return (target.value / principal.value / years.value) * 100;
+        });
+
+        function goBack() { router.back(); }
+        return { target, principal, years, annualReturn, goBack };
+      }
+    };
+
+    // Password Strength (uses md5)
+    const PasswordTool = {
+      template: `
+        <div class="page">
+          <div class="page-header">
+            <button class="back-btn" @click="goBack"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <h1>Password Strength</h1>
+          </div>
+          <div class="tool-form">
+            <div>
+              <label class="label">Enter Password</label>
+              <input class="input" type="password" v-model="password" placeholder="Type a password..." />
+            </div>
+            <div class="result-box">
+              <div class="result-label">Strength</div>
+              <div class="result-value" :style="{ color: strengthColor }">{{ strengthLabel }}</div>
+              <div class="result-label" style="margin-top:8px;">MD5 Hash</div>
+              <div class="md5-box">{{ md5Hash || '—' }}</div>
+            </div>
+          </div>
+        </div>
+      `,
+      setup() {
+        const router = useRouter();
+        const password = ref('');
+
+        const md5Hash = computed(() => password.value ? md5(password.value) : '');
+
+        const strength = computed(() => {
+          const p = password.value;
+          if (!p) return 0;
+          let score = 0;
+          if (p.length >= 8) score++;
+          if (p.length >= 12) score++;
+          if (/[a-z]/.test(p)) score++;
+          if (/[A-Z]/.test(p)) score++;
+          if (/[0-9]/.test(p)) score++;
+          if (/[^a-zA-Z0-9]/.test(p)) score++;
+          return Math.min(score, 5);
+        });
+
+        const strengthLabel = computed(() => {
+          const s = strength.value;
+          if (s <= 1) return 'Very Weak';
+          if (s === 2) return 'Weak';
+          if (s === 3) return 'Moderate';
+          if (s === 4) return 'Strong';
+          return 'Very Strong';
+        });
+
+        const strengthColor = computed(() => {
+          const s = strength.value;
+          if (s <= 1) return 'var(--color-down)';
+          if (s <= 3) return '#f59e0b';
+          return 'var(--color-up)';
+        });
+
+        function goBack() { router.back(); }
+        return { password, md5Hash, strengthLabel, strengthColor, goBack };
+      }
+    };
+
+    // Credit Memo
+    const CreditMemoTool = {
+      template: `
+        <div class="page">
+          <div class="page-header">
+            <button class="back-btn" @click="goBack"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <h1>Credit Memo</h1>
+          </div>
+          <div class="tool-form">
+            <div>
+              <label class="label">Creditor Name</label>
+              <input class="input" v-model="creditor" placeholder="e.g. Alex" />
+            </div>
+            <div>
+              <label class="label">Amount</label>
+              <input class="input" type="number" v-model.number="amount" placeholder="e.g. 500" />
+            </div>
+            <div>
+              <label class="label">Agreed Repayment Date</label>
+              <input class="input" type="date" v-model="dueDate" />
+            </div>
+            <button class="btn" @click="addMemo" style="width:100%;">Add Memo</button>
+          </div>
+          <div class="settings-list" style="margin-top:0;">
+            <div v-if="memos.length === 0" class="empty-state">No memos yet.</div>
+            <div v-for="(m, i) in memos" :key="i" class="settings-item" style="cursor:default;">
+              <div>
+                <div class="label-text" style="font-weight:600;">{{ m.creditor }}</div>
+                <div style="font-size:12px;color:var(--color-text-secondary);">Due: {{ m.dueDate }}</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-weight:700;">{{ m.amount }}</div>
+                <div style="font-size:12px;" :style="{ color: m.daysLeft <= 3 ? 'var(--color-up)' : 'var(--color-text-secondary)' }">
+                  {{ m.daysLeft >= 0 ? m.daysLeft + 'd left' : 'Overdue' }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `,
+      setup() {
+        const router = useRouter();
+        const creditor = ref('');
+        const amount = ref(0);
+        const dueDate = ref('');
+        const memos = ref([]);
+
+        function addMemo() {
+          if (!creditor.value || !dueDate.value) return;
+          const due = new Date(dueDate.value);
+          const now = new Date();
+          const diff = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
+          memos.value.push({
+            creditor: creditor.value,
+            amount: amount.value,
+            dueDate: dueDate.value,
+            daysLeft: diff
+          });
+          creditor.value = '';
+          amount.value = 0;
+          dueDate.value = '';
+        }
+
+        function goBack() { router.back(); }
+        return { creditor, amount, dueDate, memos, addMemo, goBack };
+      }
+    };
+
+    // ========================
+    // Settings Component
+    // ========================
+    const Settings = {
+      template: `
+        <div class="page">
+          <div class="page-header">
+            <h1>Settings</h1>
+          </div>
+          <div class="settings-list">
+            <div class="settings-group">
+              <div class="settings-item" @click="showVersion = true">
+                <span class="label-text">Version</span>
+                <span style="font-size:13px;color:var(--color-text-secondary);">1.0.0</span>
+              </div>
+              <router-link to="/privacy" class="settings-item">
+                <span class="label-text">Privacy Policy</span>
+                <span class="arrow">›</span>
+              </router-link>
+              <router-link to="/terms" class="settings-item">
+                <span class="label-text">Terms of Service</span>
+                <span class="arrow">›</span>
+              </router-link>
+              <router-link to="/about-team" class="settings-item">
+                <span class="label-text">About Team</span>
+                <span class="arrow">›</span>
+              </router-link>
+              <a href="mailto:com.cleaningyasmine.cleanreflex@gmail.com" class="settings-item">
+                <span class="label-text">Contact Us</span>
+                <span class="arrow">›</span>
+              </a>
+            </div>
+            <div class="settings-group">
+              <router-link to="/check-in" class="settings-item">
+                <span class="label-text">Monthly Check-in</span>
+                <span class="arrow">›</span>
+              </router-link>
+              <router-link to="/feedback" class="settings-item">
+                <span class="label-text">Feedback</span>
+                <span class="arrow">›</span>
+              </router-link>
+              <router-link to="/inbox" class="settings-item">
+                <span class="label-text">Inbox</span>
+                <span class="arrow">›</span>
+              </router-link>
+            </div>
+          </div>
+
+          <div v-if="showVersion" class="modal-overlay" @click.self="showVersion = false">
+            <div class="modal-content">
+              <h2>Version</h2>
+              <p>AO TVG DMA v1.0.0<br/>Build 2025.01<br/>© 2025 AO TVG DMA. All rights reserved.</p>
+              <button class="btn modal-close" @click="showVersion = false">Close</button>
+            </div>
+          </div>
+        </div>
+      `,
+      setup() {
+        const showVersion = ref(false);
+        return { showVersion };
+      }
+    };
+
+    // ========================
+    // Privacy Policy
+    // ========================
+    const PrivacyPolicy = {
+      template: `
+        <div class="page">
+          <div class="page-header">
+            <button class="back-btn" @click="goBack"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <h1>Privacy Policy</h1>
+          </div>
+          <div class="article-content">
+            <p>Last updated: January 2025</p>
+            <p>AO TVG DMA ("we", "our", or "us") is committed to protecting your privacy. This Privacy Policy explains how we collect, use, and safeguard your information when you use our mobile application.</p>
+            <p><strong>Information We Collect:</strong> We may collect a device fingerprint generated from your browser's canvas rendering for the purpose of ensuring secure and consistent access. We do not collect personal identification information unless you voluntarily provide it (e.g., via feedback).</p>
+            <p><strong>How We Use Information:</strong> The device fingerprint is used solely for privacy verification and to determine whether a privacy notice should be displayed. We do not sell, trade, or rent your information to third parties.</p>
+            <p><strong>Data Storage:</strong> All financial tool calculations and data (e.g., check-in records, memos) are stored locally on your device. We do not have access to this data.</p>
+            <p><strong>Contact:</strong> If you have questions about this Privacy Policy, please contact us at com.cleaningyasmine.cleanreflex@gmail.com.</p>
+          </div>
+        </div>
+      `,
+      setup() {
+        const router = useRouter();
+        function goBack() { router.back(); }
+        return { goBack };
+      }
+    };
+
+    // ========================
+    // Terms of Service
+    // ========================
+    const TermsOfService = {
+      template: `
+        <div class="page">
+          <div class="page-header">
+            <button class="back-btn" @click="goBack"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <h1>Terms of Service</h1>
+          </div>
+          <div class="article-content">
+            <p>Last updated: January 2025</p>
+            <p>By using AO TVG DMA, you agree to these Terms of Service. Please read them carefully.</p>
+            <p><strong>Use of Service:</strong> Our app provides financial information and tools for educational and informational purposes only. It does not constitute financial advice. You are solely responsible for your investment decisions.</p>
+            <p><strong>Accuracy of Information:</strong> While we strive to provide accurate data, we make no warranties regarding the completeness or reliability of any information. Market data may be delayed or simulated.</p>
+            <p><strong>Limitation of Liability:</strong> In no event shall AO TVG DMA be liable for any indirect, incidental, or consequential damages arising from your use of the app.</p>
+            <p><strong>Modifications:</strong> We reserve the right to modify these terms at any time. Continued use of the app constitutes acceptance of the updated terms.</p>
+          </div>
+        </div>
+      `,
+      setup() {
+        const router = useRouter();
+        function goBack() { router.back(); }
+        return { goBack };
+      }
+    };
+
+    // ========================
+    // About Team
+    // ========================
+    const AboutTeam = {
+      template: `
+        <div class="page">
+          <div class="page-header">
+            <button class="back-btn" @click="goBack"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <h1>About Team</h1>
+          </div>
+          <div class="article-content">
+            <p>AO TVG DMA is crafted by a small, dedicated team of finance enthusiasts and software engineers who believe that smart investing should be accessible to everyone.</p>
+            <p>Our mission is to provide intuitive, privacy-first financial tools that empower individuals to make informed decisions without relying on complex platforms.</p>
+            <p>We are based in multiple time zones, united by a passion for clean design and reliable data. Thank you for using our app.</p>
+            <p style="margin-top:24px;font-weight:600;">— The AO TVG DMA Team</p>
+          </div>
+        </div>
+      `,
+      setup() {
+        const router = useRouter();
+        function goBack() { router.back(); }
+        return { goBack };
+      }
+    };
+
+    // ========================
+    // Check-in
+    // ========================
+    const CheckIn = {
+      template: `
+        <div class="page">
+          <div class="page-header">
+            <button class="back-btn" @click="goBack"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <h1>Monthly Check-in</h1>
+          </div>
+          <div class="tool-form">
+            <div class="card">
+              <div style="font-weight:700;font-size:16px;margin-bottom:12px;">
+                {{ currentYear }} / {{ currentMonth }}
+              </div>
+              <div class="weekday-row">
+                <span v-for="d in weekdays" :key="d">{{ d }}</span>
+              </div>
+              <div class="calendar-grid">
+                <div
+                  v-for="(cell, idx) in calendarCells"
+                  :key="idx"
+                  class="calendar-cell"
+                  :class="{ checked: cell.checked, today: cell.isToday }"
+                  style="visibility: cell.day ? 'visible' : 'hidden';"
+                >
+                  {{ cell.day || '' }}
+                </div>
+              </div>
+            </div>
+            <button class="btn" @click="checkIn" :disabled="todayChecked" style="width:100%;">
+              {{ todayChecked ? 'Already Checked In' : 'Check In Today' }}
+            </button>
+            <div v-if="toast" class="toast">{{ toast }}</div>
+          </div>
+        </div>
+      `,
+      setup() {
+        const router = useRouter();
+        const now = new Date();
+        const currentYear = now.getFullYear();
+        const currentMonth = now.getMonth() + 1;
+        const weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
+        const checkedDays = ref(JSON.parse(localStorage.getItem('checkin_' + currentYear + '_' + currentMonth) || '[]'));
+        const toast = ref('');
+
+        const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
+        const firstDay = new Date(currentYear, currentMonth - 1, 1).getDay();
+
+        const calendarCells = computed(() => {
+          const cells = [];
+          for (let i = 0; i < firstDay; i++) cells.push({ day: 0, checked: false, isToday: false });
+          const today = new Date().getDate();
+          for (let d = 1; d <= daysInMonth; d++) {
+            cells.push({
+              day: d,
+              checked: checkedDays.value.includes(d),
+              isToday: d === today
+            });
+          }
+          return cells;
+        });
+
+        const todayChecked = computed(() => {
+          return checkedDays.value.includes(new Date().getDate());
+        });
+
+        function checkIn() {
+          const today = new Date().getDate();
+          if (!checkedDays.value.includes(today)) {
+            checkedDays.value.push(today);
+            localStorage.setItem('checkin_' + currentYear + '_' + currentMonth, JSON.stringify(checkedDays.value));
+            toast.value = 'Check-in successful!';
+            setTimeout(() => { toast.value = ''; }, 2000);
+          }
+        }
+
+        function goBack() { router.back(); }
+        return {
+          currentYear, currentMonth, weekdays,
+          calendarCells, todayChecked, checkIn, toast, goBack
+        };
+      }
+    };
+
+    // ========================
+    // Feedback
+    // ========================
+    const Feedback = {
+      template: `
+        <div class="page">
+          <div class="page-header">
+            <button class="back-btn" @click="goBack"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <h1>Feedback</h1>
+          </div>
+          <div class="tool-form">
+            <div>
+              <label class="label">Title</label>
+              <input class="input" v-model="title" placeholder="Enter a title..." />
+            </div>
+            <div>
+              <label class="label">Content</label>
+              <textarea class="input" v-model="content" rows="5" placeholder="Describe your feedback..." style="resize:vertical;min-height:100px;"></textarea>
+            </div>
+            <button class="btn" :disabled="!canSubmit" @click="submit" style="width:100%;">Send</button>
+            <div v-if="toast" class="toast">{{ toast }}</div>
+          </div>
+        </div>
+      `,
+      setup() {
+        const router = useRouter();
+        const title = ref('');
+        const content = ref('');
+        const toast = ref('');
+
+        const canSubmit = computed(() => title.value.trim().length > 0 && content.value.trim().length > 0);
+
+        function submit() {
+          if (!canSubmit.value) return;
+          toast.value = 'Feedback sent successfully!';
+          title.value = '';
+          content.value = '';
+          setTimeout(() => {
+            toast.value = '';
+            router.back();
+          }, 1500);
+        }
+
+        function goBack() { router.back(); }
+        return { title, content, canSubmit, submit, toast, goBack };
+      }
+    };
+
+    // ========================
+    // Inbox
+    // ========================
+    const Inbox = {
+      template: `
+        <div class="page">
+          <div class="page-header">
+            <button class="back-btn" @click="goBack"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></button>
+            <h1>Inbox</h1>
+          </div>
+          <div class="settings-list">
+            <div class="settings-group">
+              <div
+                v-for="(msg, idx) in messages"
+                :key="idx"
+                class="settings-item"
+                @click="openMessage(msg)"
+              >
+                <span class="label-text">{{ msg.title }}</span>
+                <span class="arrow">›</span>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="activeMessage" class="modal-overlay" @click.self="activeMessage = null">
+            <div class="modal-content">
+              <h2>{{ activeMessage.title }}</h2>
+              <p>{{ activeMessage.content }}</p>
+              <button class="btn modal-close" @click="activeMessage = null">Close</button>
+            </div>
+          </div>
+        </div>
+      `,
+      setup() {
+        const router = useRouter();
+        const messages = ref([
+          {
+            title: 'Welcome',
+            content: 'Welcome to AO TVG DMA! We are excited to have you on board. Explore our financial tools, track market movements, and make smarter decisions. If you need any help, feel free to reach out through the Feedback page. Happy investing!'
+          }
+        ]);
+        const activeMessage = ref(null);
+
+        function openMessage(msg) { activeMessage.value = msg; }
+        function goBack() { router.back(); }
+        return { messages, activeMessage, openMessage, goBack };
+      }
+    };
+
+    // ========================
+    // Router configuration
+    // ========================
+    const routes = [
+      { path: '/', redirect: '/loading' },
+      { path: '/loading', component: Loading, meta: { showTab: false } },
+      { path: '/home', component: Home, meta: { showTab: true } },
+      { path: '/stock/:symbol', component: StockDetail, meta: { showTab: false } },
+      { path: '/rank/:type', component: RankingPage, meta: { showTab: false } },
+      { path: '/guide', component: GuidePage, meta: { showTab: false } },
+      { path: '/toolbox', component: Toolbox, meta: { showTab: true } },
+      { path: '/tool/dca', component: DCATool, meta: { showTab: false } },
+      { path: '/tool/calendar', component: CalendarTool, meta: { showTab: false } },
+      { path: '/tool/loan', component: LoanTool, meta: { showTab: false } },
+      { path: '/tool/profit', component: ProfitTool, meta: { showTab: false } },
+      { path: '/tool/reverse-yield', component: ReverseYieldTool, meta: { showTab: false } },
+      { path: '/tool/password', component: PasswordTool, meta: { showTab: false } },
+      { path: '/tool/credit-memo', component: CreditMemoTool, meta: { showTab: false } },
+      { path: '/settings', component: Settings, meta: { showTab: true } },
+      { path: '/privacy', component: PrivacyPolicy, meta: { showTab: false } },
+      { path: '/terms', component: TermsOfService, meta: { showTab: false } },
+      { path: '/about-team', component: AboutTeam, meta: { showTab: false } },
+      { path: '/check-in', component: CheckIn, meta: { showTab: false } },
+      { path: '/feedback', component: Feedback, meta: { showTab: false } },
+      { path: '/inbox', component: Inbox, meta: { showTab: false } }
+    ];
+
+    const router = createRouter({
+      history: createWebHashHistory(),
+      routes
+    });
+
+    // ========================
+    // Root App component
+    // ========================
+    const App = {
+      template: `
+        <div style="height:100%;display:flex;flex-direction:column;">
+          <router-view v-slot="{ Component }">
+            <transition name="fade" mode="out-in">
+              <component :is="Component" />
+            </transition>
+          </router-view>
+
+          <nav class="tab-bar" v-if="showTab">
+            <router-link to="/home" class="tab-item">
+              <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+              Home
+            </router-link>
+            <router-link to="/toolbox" class="tab-item">
+              <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              Toolbox
+            </router-link>
+            <router-link to="/settings" class="tab-item">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              Settings
+            </router-link>
+          </nav>
+        </div>
+      `,
+      setup() {
+        const route = useRoute();
+        const showTab = computed(() => {
+          // Show tab bar only for routes with meta.showTab === true
+          return route.meta && route.meta.showTab === true;
+        });
+        return { showTab };
+      }
+    };
+
+    // ========================
+    // Create app
+    // ========================
+    const app = createApp(App);
+    app.use(router);
+    app.mount('#app');
+  </script>
+</body>
+</html>
